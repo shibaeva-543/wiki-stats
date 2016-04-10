@@ -24,7 +24,7 @@ class WikiGraph:
 
 
             self._titles = []
-            self._sizes = array.array('L', [0]*n)
+            self._sizes = array.array('I', [0]*n)
             self._links = array.array('L', [0]*_nlinks)
             self._redirect = array.array('B', [0]*n)
             self._offset = array.array('L', [0]*(n+1))
@@ -42,16 +42,10 @@ class WikiGraph:
                 self._offset[i+1] = self._offset[i] + num_of_links
                 for j in range(curr_link, curr_link + num_of_links):
                     self._links[j] = int(f.readline())
+                    self._num_of_links_to[self._links[j]] += 1
+                    if self._redirect[i]:
+                        self._num_of_redirects_to[self._links[j]] += 1
                 curr_link += num_of_links
-
-        '''скорее всего, полная википедия падает именно здесь,
-        но я не вижу другого способа определить количество внешних ссылок на каждую статью'''
-        for i in range(n):
-            for j in range(n):
-                if i in list(self._links[self._offset[j]:self._offset[j+1]]):
-                    self._num_of_links_to[i] += 1
-                    if self.is_redirect(j):
-                        self._num_of_redirects_to[i] += 1
 
         print('Граф загружен')
 
@@ -165,13 +159,15 @@ class WikiGraph:
         print('Статьи с наибольшим количеством внешних перенаправлений:', ' '.join(pages_with_max_redirects))
         print('Количество статей с минимальным количеством внешних перенаправлений: ', num_of_pages_with_min_redirects)
 
-    def shortest_path(self, start_page, finish_page, fired = set()): #поиск в ширину и так дает кратчайший путь в ребрах, просто не хватило фантазии
-        print('\nЗапускаем поиск в ширину')
+    def shortest_path(self, fired = set()): #поиск в ширину и так дает кратчайший путь в ребрах, просто не хватило фантазии
+        print('\nВведите начальную и конечную статьи:', end = ' ')
+        start_page, finish_page = input().split()
+        print('Запускаем поиск в ширину')
         start_id = self.get_id(start_page)
         finish_id = self.get_id(finish_page)
         fired.add(start_id)
-        queue = [start_id]
-        shortest_from = [-1]*self.get_number_of_pages()
+        queue = array.array('L', [start_id])
+        shortest_from = array.array('l', [-1]*self.get_number_of_pages())
         while len(queue) != 0:
             current = queue.pop(0)
             for neighbour in self.get_links_from(current):
@@ -179,10 +175,10 @@ class WikiGraph:
                     fired.add(neighbour)
                     queue.append(neighbour)
                     shortest_from[neighbour] = current
+            if current == finish_id:
+                break
         path = finish_page
         while shortest_from[finish_id] != -1:
-            #для других целей, но пусть будет здесь
-            #shortest_path.insert(0, (self.get_title(shortest_from[finish_id]), self.get_title(finish_id)))
             path = self.get_title(shortest_from[finish_id]) + ' --> ' + path
             finish_id = shortest_from[finish_id]
         print('Поиск закончен. Найден путь:')
@@ -205,7 +201,7 @@ if __name__ == '__main__':
         wg = WikiGraph()
         wg.load_from_file(sys.argv[1])
         wg.analysis()
-        wg.shortest_path('Python', 'Список_файловых_систем')
+        wg.shortest_path()
 
 
     else:
