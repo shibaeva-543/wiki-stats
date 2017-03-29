@@ -203,7 +203,6 @@ if __name__ == '__main__':
         wg.analysis()
         wg.shortest_path()
 
-
     else:
         print('Файл с графом не найден')
         sys.exit(-1)
